@@ -22,6 +22,7 @@ use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Tests\Integration\Database\Fixtures\Post;
 use Illuminate\Tests\Integration\Database\Fixtures\User;
@@ -788,7 +789,7 @@ class DatabaseEloquentIntegrationTest extends TestCase
         );
 
         EloquentTestUser::create(['id' => 1, 'email' => 'taylorotwell@gmail.com']);
-        EloquentTestUser::findOrFail(new Collection([1, 1, 2, 3]));
+        EloquentTestUser::findOrFail(new BaseCollection([1, 1, 2, 3]));
     }
 
     public function testOneToOneRelationship()

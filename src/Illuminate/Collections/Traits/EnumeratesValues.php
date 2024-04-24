@@ -363,9 +363,9 @@ trait EnumeratesValues
     public function mapSpread(callable $callback)
     {
         return $this->map(function ($chunk, $key) use ($callback) {
-            $chunk[] = $key;
+            $values = [...$chunk, $key];
 
-            return $callback(...$chunk);
+            return $callback(...$values);
         });
     }
 

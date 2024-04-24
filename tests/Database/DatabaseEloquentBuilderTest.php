@@ -17,6 +17,7 @@ use Illuminate\Database\Query\Builder as BaseBuilder;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Database\Query\Grammars\Grammar;
 use Illuminate\Database\Query\Processors\Processor;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection as BaseCollection;
 use Mockery as m;
@@ -157,7 +158,7 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder->setModel($model);
         $builder->getQuery()->shouldReceive('whereIntegerInRaw')->once()->with('foo_table.foo', [1, 2]);
         $builder->shouldReceive('get')->with(['column'])->andReturn(new Collection([$model]));
-        $builder->findOrFail(new Collection([1, 2]), ['column']);
+        $builder->findOrFail(new BaseCollection([1, 2]), ['column']);
     }
 
     public function testFindOrMethod()
@@ -219,17 +220,17 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder->shouldReceive('get')->with(['column'])->andReturn(new Collection([$model1, $model2]))->once();
         $builder->shouldReceive('get')->andReturn(null)->once();
 
-        $result = $builder->findOr(new Collection([1, 2]), fn () => 'callback result');
+        $result = $builder->findOr(new BaseCollection([1, 2]), fn () => 'callback result');
         $this->assertInstanceOf(Collection::class, $result);
         $this->assertSame($model1, $result[0]);
         $this->assertSame($model2, $result[1]);
 
-        $result = $builder->findOr(new Collection([1, 2]), ['column'], fn () => 'callback result');
+        $result = $builder->findOr(new BaseCollection([1, 2]), ['column'], fn () => 'callback result');
         $this->assertInstanceOf(Collection::class, $result);
         $this->assertSame($model1, $result[0]);
         $this->assertSame($model2, $result[1]);
 
-        $result = $builder->findOr(new Collection([1, 2, 3]), fn () => 'callback result');
+        $result = $builder->findOr(new BaseCollection([1, 2, 3]), fn () => 'callback result');
         $this->assertSame('callback result', $result);
     }
 
@@ -272,12 +273,13 @@ class DatabaseEloquentBuilderTest extends TestCase
 
     public function testFirstMethod()
     {
+        $model = $this->getMockModel();
         $builder = m::mock(Builder::class.'[get,take]', [$this->getMockQueryBuilder()]);
         $builder->shouldReceive('take')->with(1)->andReturnSelf();
-        $builder->shouldReceive('get')->with(['*'])->andReturn(new Collection(['bar']));
+        $builder->shouldReceive('get')->with(['*'])->andReturn(new Collection([$model]));
 
         $result = $builder->first();
-        $this->assertSame('bar', $result);
+        $this->assertSame($model, $result);
     }
 
     public function testQualifyColumn()
@@ -302,15 +304,16 @@ class DatabaseEloquentBuilderTest extends TestCase
 
     public function testGetMethodLoadsModelsAndHydratesEagerRelations()
     {
+        $models = BaseCollection::times(2, fn () => $this->getMockModel())->all();
         $builder = m::mock(Builder::class.'[getModels,eagerLoadRelations]', [$this->getMockQueryBuilder()]);
         $builder->shouldReceive('applyScopes')->andReturnSelf();
         $builder->shouldReceive('getModels')->with(['foo'])->andReturn(['bar']);
         $builder->shouldReceive('eagerLoadRelations')->with(['bar'])->andReturn(['bar', 'baz']);
         $builder->setModel($this->getMockModel());
-        $builder->getModel()->shouldReceive('newCollection')->with(['bar', 'baz'])->andReturn(new Collection(['bar', 'baz']));
+        $builder->getModel()->shouldReceive('newCollection')->with(['bar', 'baz'])->andReturn(new Collection($models));
 
         $results = $builder->get(['foo']);
-        $this->assertEquals(['bar', 'baz'], $results->all());
+        $this->assertEquals($models, $results->all());
     }
 
     public function testGetMethodDoesntHydrateEagerRelationsWhenNoResultsAreReturned()
@@ -372,8 +375,8 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = m::mock(Builder::class.'[forPage,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
 
-        $chunk1 = new Collection(['foo1', 'foo2']);
-        $chunk2 = new Collection(['foo3', 'foo4']);
+        $chunk1 = Collection::times(2, fn () => $this->getMockModel());
+        $chunk2 = Collection::times(2, fn () => $this->getMockModel());
         $chunk3 = new Collection([]);
         $builder->shouldReceive('forPage')->once()->with(1, 2)->andReturnSelf();
         $builder->shouldReceive('forPage')->once()->with(2, 2)->andReturnSelf();
@@ -395,8 +398,8 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = m::mock(Builder::class.'[forPage,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
 
-        $chunk1 = new Collection(['foo1', 'foo2']);
-        $chunk2 = new Collection(['foo3']);
+        $chunk1 = Collection::times(2, fn () => $this->getMockModel());
+        $chunk2 = new Collection([$this->getMockModel()]);
         $builder->shouldReceive('forPage')->once()->with(1, 2)->andReturnSelf();
         $builder->shouldReceive('forPage')->once()->with(2, 2)->andReturnSelf();
         $builder->shouldReceive('get')->times(2)->andReturn($chunk1, $chunk2);
@@ -415,8 +418,8 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = m::mock(Builder::class.'[forPage,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
 
-        $chunk1 = new Collection(['foo1', 'foo2']);
-        $chunk2 = new Collection(['foo3']);
+        $chunk1 = Collection::times(2, fn () => $this->getMockModel());
+        $chunk2 = new Collection([$this->getMockModel()]);
         $builder->shouldReceive('forPage')->once()->with(1, 2)->andReturnSelf();
         $builder->shouldReceive('forPage')->never()->with(2, 2);
         $builder->shouldReceive('get')->times(1)->andReturn($chunk1);
@@ -454,8 +457,8 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = m::mock(Builder::class.'[forPageAfterId,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
 
-        $chunk1 = new Collection([(object) ['someIdField' => 1], (object) ['someIdField' => 2]]);
-        $chunk2 = new Collection([(object) ['someIdField' => 10], (object) ['someIdField' => 11]]);
+        $chunk1 = new Collection([$this->getModel(['someIdField' => 1]), $this->getModel(['someIdField' => 2])]);
+        $chunk2 = new Collection([$this->getModel(['someIdField' => 10]), $this->getModel(['someIdField' => 11])]);
         $chunk3 = new Collection([]);
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 0, 'someIdField')->andReturnSelf();
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 2, 'someIdField')->andReturnSelf();
@@ -477,8 +480,8 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = m::mock(Builder::class.'[forPageAfterId,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
 
-        $chunk1 = new Collection([(object) ['someIdField' => 1], (object) ['someIdField' => 2]]);
-        $chunk2 = new Collection([(object) ['someIdField' => 10]]);
+        $chunk1 = new Collection([$this->getModel(['someIdField' => 1]), $this->getModel(['someIdField' => 2])]);
+        $chunk2 = new Collection([$this->getModel(['someIdField' => 10])]);
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 0, 'someIdField')->andReturnSelf();
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 2, 'someIdField')->andReturnSelf();
         $builder->shouldReceive('get')->times(2)->andReturn($chunk1, $chunk2);
@@ -513,49 +516,46 @@ class DatabaseEloquentBuilderTest extends TestCase
     {
         $builder = m::mock(Builder::class.'[forPage,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
+        $models = Collection::times(4, fn () => $this->getModel())->all();
 
         $builder->shouldReceive('forPage')->once()->with(1, 2)->andReturnSelf();
         $builder->shouldReceive('forPage')->once()->with(2, 2)->andReturnSelf();
         $builder->shouldReceive('forPage')->once()->with(3, 2)->andReturnSelf();
         $builder->shouldReceive('get')->times(3)->andReturn(
-            new Collection(['foo1', 'foo2']),
-            new Collection(['foo3', 'foo4']),
+            new Collection([$models[0], $models[1]]),
+            new Collection([$models[2], $models[3]]),
             new Collection([])
         );
 
-        $this->assertEquals(
-            ['foo1', 'foo2', 'foo3', 'foo4'],
-            $builder->lazy(2)->all()
-        );
+        $this->assertEquals($models, $builder->lazy(2)->all());
     }
 
     public function testLazyWithLastChunkPartial()
     {
         $builder = m::mock(Builder::class.'[forPage,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
+        $models = Collection::times(3, fn () => $this->getModel())->all();
 
         $builder->shouldReceive('forPage')->once()->with(1, 2)->andReturnSelf();
         $builder->shouldReceive('forPage')->once()->with(2, 2)->andReturnSelf();
         $builder->shouldReceive('get')->times(2)->andReturn(
-            new Collection(['foo1', 'foo2']),
-            new Collection(['foo3'])
+            new Collection([$models[0], $models[1]]),
+            new Collection([$models[2]]),
         );
 
-        $this->assertEquals(
-            ['foo1', 'foo2', 'foo3'],
-            $builder->lazy(2)->all()
-        );
+        $this->assertEquals($models, $builder->lazy(2)->all());
     }
 
     public function testLazyIsLazy()
     {
         $builder = m::mock(Builder::class.'[forPage,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
+        $models = Collection::times(2, fn () => $this->getModel())->all();
 
         $builder->shouldReceive('forPage')->once()->with(1, 2)->andReturnSelf();
-        $builder->shouldReceive('get')->once()->andReturn(new Collection(['foo1', 'foo2']));
+        $builder->shouldReceive('get')->once()->andReturn(new Collection($models));
 
-        $this->assertEquals(['foo1', 'foo2'], $builder->lazy(2)->take(2)->all());
+        $this->assertEquals($models, $builder->lazy(2)->take(2)->all());
     }
 
     public function testLazyByIdWithLastChunkComplete()
@@ -563,8 +563,8 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = m::mock(Builder::class.'[forPageAfterId,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
 
-        $chunk1 = new Collection([(object) ['someIdField' => 1], (object) ['someIdField' => 2]]);
-        $chunk2 = new Collection([(object) ['someIdField' => 10], (object) ['someIdField' => 11]]);
+        $chunk1 = new Collection([$this->getModel(['someIdField' => 1]), $this->getModel(['someIdField' => 2])]);
+        $chunk2 = new Collection([$this->getModel(['someIdField' => 10]), $this->getModel(['someIdField' => 11])]);
         $chunk3 = new Collection([]);
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 0, 'someIdField')->andReturnSelf();
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 2, 'someIdField')->andReturnSelf();
@@ -572,12 +572,7 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder->shouldReceive('get')->times(3)->andReturn($chunk1, $chunk2, $chunk3);
 
         $this->assertEquals(
-            [
-                (object) ['someIdField' => 1],
-                (object) ['someIdField' => 2],
-                (object) ['someIdField' => 10],
-                (object) ['someIdField' => 11],
-            ],
+            [...$chunk1, ...$chunk2, ...$chunk3],
             $builder->lazyById(2, 'someIdField')->all()
         );
     }
@@ -587,18 +582,14 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = m::mock(Builder::class.'[forPageAfterId,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
 
-        $chunk1 = new Collection([(object) ['someIdField' => 1], (object) ['someIdField' => 2]]);
-        $chunk2 = new Collection([(object) ['someIdField' => 10]]);
+        $chunk1 = new Collection([$this->getModel(['someIdField' => 1]), $this->getModel(['someIdField' => 2])]);
+        $chunk2 = new Collection([$this->getModel(['someIdField' => 10])]);
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 0, 'someIdField')->andReturnSelf();
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 2, 'someIdField')->andReturnSelf();
         $builder->shouldReceive('get')->times(2)->andReturn($chunk1, $chunk2);
 
         $this->assertEquals(
-            [
-                (object) ['someIdField' => 1],
-                (object) ['someIdField' => 2],
-                (object) ['someIdField' => 10],
-            ],
+            [...$chunk1, ...$chunk2],
             $builder->lazyById(2, 'someIdField')->all()
         );
     }
@@ -608,15 +599,12 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = m::mock(Builder::class.'[forPageAfterId,get]', [$this->getMockQueryBuilder()]);
         $builder->getQuery()->orders[] = ['column' => 'foobar', 'direction' => 'asc'];
 
-        $chunk1 = new Collection([(object) ['someIdField' => 1], (object) ['someIdField' => 2]]);
+        $chunk1 = new Collection([$this->getModel(['someIdField' => 1]), $this->getModel(['someIdField' => 2])]);
         $builder->shouldReceive('forPageAfterId')->once()->with(2, 0, 'someIdField')->andReturnSelf();
         $builder->shouldReceive('get')->once()->andReturn($chunk1);
 
         $this->assertEquals(
-            [
-                (object) ['someIdField' => 1],
-                (object) ['someIdField' => 2],
-            ],
+            [...$chunk1],
             $builder->lazyById(2, 'someIdField')->take(2)->all()
         );
     }
@@ -775,10 +763,11 @@ class DatabaseEloquentBuilderTest extends TestCase
         $model = m::mock(Model::class.'[getTable,hydrate]');
         $model->shouldReceive('getTable')->once()->andReturn('foo_table');
         $builder->setModel($model);
-        $model->shouldReceive('hydrate')->once()->with($records)->andReturn(new Collection(['hydrated']));
+        $result = [$this->getModel()];
+        $model->shouldReceive('hydrate')->once()->with($records)->andReturn(new Collection($result));
         $models = $builder->getModels(['foo']);
 
-        $this->assertEquals(['hydrated'], $models);
+        $this->assertEquals($result, $models);
     }
 
     public function testEagerLoadRelationsLoadTopLevelRelationships()
@@ -1962,7 +1951,7 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = $this->getBuilder()->setModel($model);
         $keyName = $model->getQualifiedKeyName();
 
-        $collection = new Collection([1, 2, 3]);
+        $collection = new BaseCollection([1, 2, 3]);
 
         $builder->getQuery()->shouldReceive('whereIntegerInRaw')->once()->with($keyName, $collection);
 
@@ -2046,7 +2035,7 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder = $this->getBuilder()->setModel($model);
         $keyName = $model->getQualifiedKeyName();
 
-        $collection = new Collection([1, 2, 3]);
+        $collection = new BaseCollection([1, 2, 3]);
 
         $builder->getQuery()->shouldReceive('whereIntegerNotInRaw')->once()->with($keyName, $collection);
 
@@ -2406,6 +2395,11 @@ class DatabaseEloquentBuilderTest extends TestCase
     protected function getBuilder()
     {
         return new Builder($this->getMockQueryBuilder());
+    }
+
+    protected function getModel(array $attributes = [])
+    {
+        return (new EloquentBuilderTestStub)->forceFill($attributes);
     }
 
     protected function getMockModel()

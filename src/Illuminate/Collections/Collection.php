@@ -521,7 +521,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             }
         }
 
-        $result = new static($results);
+        $result = static::make($results);
 
         if (! empty($nextGroups)) {
             return $result->map->groupBy($nextGroups, $preserveKeys);
@@ -774,7 +774,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function map(callable $callback)
     {
-        return new static(Arr::map($this->items, $callback));
+        return static::make(Arr::map($this->items, $callback));
     }
 
     /**
@@ -806,7 +806,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             $dictionary[$key][] = $value;
         }
 
-        return new static($dictionary);
+        return static::make($dictionary);
     }
 
     /**
@@ -822,7 +822,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function mapWithKeys(callable $callback)
     {
-        return new static(Arr::mapWithKeys($this->items, $callback));
+        return static::make(Arr::mapWithKeys($this->items, $callback));
     }
 
     /**
@@ -833,7 +833,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function merge($items)
     {
-        return new static(array_merge($this->items, $this->getArrayableItems($items)));
+        return static::make(array_merge($this->items, $this->getArrayableItems($items)));
     }
 
     /**
@@ -846,7 +846,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function mergeRecursive($items)
     {
-        return new static(array_merge_recursive($this->items, $this->getArrayableItems($items)));
+        return static::make(array_merge_recursive($this->items, $this->getArrayableItems($items)));
     }
 
     /**
@@ -870,7 +870,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function union($items)
     {
-        return new static($this->items + $this->getArrayableItems($items));
+        return static::make($this->items + $this->getArrayableItems($items));
     }
 
     /**
@@ -1073,7 +1073,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function replace($items)
     {
-        return new static(array_replace($this->items, $this->getArrayableItems($items)));
+        return static::make(array_replace($this->items, $this->getArrayableItems($items)));
     }
 
     /**
@@ -1084,7 +1084,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function replaceRecursive($items)
     {
-        return new static(array_replace_recursive($this->items, $this->getArrayableItems($items)));
+        return static::make(array_replace_recursive($this->items, $this->getArrayableItems($items)));
     }
 
     /**
@@ -1227,7 +1227,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             return new static;
         }
 
-        $groups = new static;
+        $groups = [];
 
         $groupSize = floor($this->count() / $numberOfGroups);
 
@@ -1243,13 +1243,13 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             }
 
             if ($size) {
-                $groups->push(new static(array_slice($this->items, $start, $size)));
+                $groups[] = new static(array_slice($this->items, $start, $size));
 
                 $start += $size;
             }
         }
 
-        return $groups;
+        return static::make($groups);
     }
 
     /**
@@ -1340,7 +1340,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             $chunks[] = new static($chunk);
         }
 
-        return new static($chunks);
+        return static::make($chunks);
     }
 
     /**
@@ -1351,7 +1351,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function chunkWhile(callable $callback)
     {
-        return new static(
+        return static::make(
             $this->lazy()->chunkWhile($callback)->mapInto(static::class)
         );
     }
@@ -1743,7 +1743,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
      */
     public function add($item)
     {
-        $this->items[] = $item;
+        $this->offsetSet(null, $item);
 
         return $this;
     }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -375,7 +376,7 @@ class EloquentBelongsToManyTest extends DatabaseTestCase
         $this->assertCount(0, $post->tags()->findMany([]));
         $this->assertCount(2, $post->tags()->findMany([$tag->id, $tag2->id]));
         $this->assertCount(0, $post->tags()->findMany(new Collection));
-        $this->assertCount(2, $post->tags()->findMany(new Collection([$tag->id, $tag2->id])));
+        $this->assertCount(2, $post->tags()->findMany(new Collection([$tag, $tag2])));
     }
 
     public function testFindMethodStringyKey()
@@ -417,7 +418,7 @@ class EloquentBelongsToManyTest extends DatabaseTestCase
         $this->assertCount(0, $post->tags()->findMany([]));
         $this->assertCount(2, $post->tags()->findMany([$tag->id, $tag2->id]));
         $this->assertCount(0, $post->tags()->findMany(new Collection));
-        $this->assertCount(2, $post->tags()->findMany(new Collection([$tag->id, $tag2->id])));
+        $this->assertCount(2, $post->tags()->findMany(new BaseCollection([$tag->id, $tag2->id])));
     }
 
     public function testFindOrFailMethod()
@@ -459,7 +460,7 @@ class EloquentBelongsToManyTest extends DatabaseTestCase
 
         $post->tags()->attach(Tag::all());
 
-        $post->tags()->findOrFail(new Collection([10, 11]));
+        $post->tags()->findOrFail(new BaseCollection([10, 11]));
     }
 
     public function testFindOrNewMethod()
@@ -529,21 +530,21 @@ class EloquentBelongsToManyTest extends DatabaseTestCase
             ['name' => Str::random()],
         ]);
 
-        $result = $post->tags()->findOr(new Collection([1, 2]), fn () => 'callback result');
+        $result = $post->tags()->findOr(new BaseCollection([1, 2]), fn () => 'callback result');
         $this->assertInstanceOf(Collection::class, $result);
         $this->assertSame(1, $result[0]->id);
         $this->assertSame(2, $result[1]->id);
         $this->assertNotNull($result[0]->name);
         $this->assertNotNull($result[1]->name);
 
-        $result = $post->tags()->findOr(new Collection([1, 2]), ['id'], fn () => 'callback result');
+        $result = $post->tags()->findOr(new BaseCollection([1, 2]), ['id'], fn () => 'callback result');
         $this->assertInstanceOf(Collection::class, $result);
         $this->assertSame(1, $result[0]->id);
         $this->assertSame(2, $result[1]->id);
         $this->assertNull($result[0]->name);
         $this->assertNull($result[1]->name);
 
-        $result = $post->tags()->findOr(new Collection([1, 2, 3]), fn () => 'callback result');
+        $result = $post->tags()->findOr(new BaseCollection([1, 2, 3]), fn () => 'callback result');
         $this->assertSame('callback result', $result);
     }
 

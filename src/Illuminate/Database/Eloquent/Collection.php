@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\Concerns\InteractsWithDictionary;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection as BaseCollection;
 use LogicException;
+use UnexpectedValueException;
 
 /**
  * @template TKey of array-key
@@ -19,6 +20,67 @@ use LogicException;
 class Collection extends BaseCollection implements QueueableCollection
 {
     use InteractsWithDictionary;
+
+    /**
+     * Create a new collection.
+     *
+     * @param  \Illuminate\Contracts\Support\Arrayable<TKey, TModel>|iterable<TKey, TModel>|null  $items
+     * @return void
+     *
+     * @throws \UnexpectedValueException
+     */
+    public function __construct($items = [])
+    {
+        parent::__construct($items);
+        $this->ensureItemsAreModels();
+    }
+
+    /**
+     * Create a new collection instance if the value isn't one already.
+     *
+     * @template TMakeKey of array-key
+     * @template TMakeValue
+     *
+     * @param  \Illuminate\Contracts\Support\Arrayable<TMakeKey, TMakeValue>|iterable<TMakeKey, TMakeValue>|null  $items
+     * @return \Illuminate\Support\Collection<TMakeKey, TMakeValue>|static<TMakeKey, TMakeValue>
+     */
+    public static function make($items = [])
+    {
+        try {
+            return parent::make($items);
+        } catch (UnexpectedValueException $e) {
+            return BaseCollection::make($items);
+        }
+    }
+
+    /**
+     * Create a Support collection with the given range.
+     *
+     * @param  int  $from
+     * @param  int  $to
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    public static function range($from, $to)
+    {
+        return BaseCollection::range($from, $to);
+    }
+
+    /**
+     * Wrap the given value in a collection if applicable.
+     *
+     * @template TWrapValue
+     *
+     * @param  iterable<array-key, TWrapValue>|TWrapValue  $value
+     * @return \Illuminate\Support\Collection<array-key, TWrapValue>|static<array-key, TWrapValue>
+     */
+    public static function wrap($value)
+    {
+        try {
+            return parent::wrap($value);
+        } catch (UnexpectedValueException $e) {
+            return BaseCollection::wrap($value);
+        }
+    }
 
     /**
      * Find a model in the collection by key.
@@ -317,11 +379,19 @@ class Collection extends BaseCollection implements QueueableCollection
     /**
      * Merge the collection with the given items.
      *
-     * @param  iterable<array-key, TModel>  $items
-     * @return static
+     * @template TValue
+     *
+     * @param  iterable<array-key, TModel|TValue>  $items
+     * @return \Illuminate\Support\Collection<TKey, TModel|TValue>|static<TKey, TModel>
      */
     public function merge($items)
     {
+        try {
+            $this->ensureItemsAreModels($items);
+        } catch (UnexpectedValueException) {
+            return $this->toBase()->merge($items);
+        }
+
         $dictionary = $this->getDictionary();
 
         foreach ($items as $item) {
@@ -332,43 +402,10 @@ class Collection extends BaseCollection implements QueueableCollection
     }
 
     /**
-     * Run a map over each of the items.
-     *
-     * @template TMapValue
-     *
-     * @param  callable(TModel, TKey): TMapValue  $callback
-     * @return \Illuminate\Support\Collection<TKey, TMapValue>|static<TKey, TMapValue>
-     */
-    public function map(callable $callback)
-    {
-        $result = parent::map($callback);
-
-        return $result->contains(fn ($item) => ! $item instanceof Model) ? $result->toBase() : $result;
-    }
-
-    /**
-     * Run an associative map over each of the items.
-     *
-     * The callback should return an associative array with a single key / value pair.
-     *
-     * @template TMapWithKeysKey of array-key
-     * @template TMapWithKeysValue
-     *
-     * @param  callable(TModel, TKey): array<TMapWithKeysKey, TMapWithKeysValue>  $callback
-     * @return \Illuminate\Support\Collection<TMapWithKeysKey, TMapWithKeysValue>|static<TMapWithKeysKey, TMapWithKeysValue>
-     */
-    public function mapWithKeys(callable $callback)
-    {
-        $result = parent::mapWithKeys($callback);
-
-        return $result->contains(fn ($item) => ! $item instanceof Model) ? $result->toBase() : $result;
-    }
-
-    /**
      * Reload a fresh model instance from the database for all the entities.
      *
      * @param  array<array-key, string>|string  $with
-     * @return static
+     * @return static<int, TModel>
      */
     public function fresh($with = [])
     {
@@ -392,7 +429,7 @@ class Collection extends BaseCollection implements QueueableCollection
      * Diff the collection with the given items.
      *
      * @param  iterable<array-key, TModel>  $items
-     * @return static
+     * @return static<int, TModel>
      */
     public function diff($items)
     {
@@ -413,7 +450,7 @@ class Collection extends BaseCollection implements QueueableCollection
      * Intersect the collection with the given items.
      *
      * @param  iterable<array-key, TModel>  $items
-     * @return static
+     * @return static<int, TModel>
      */
     public function intersect($items)
     {
@@ -563,6 +600,26 @@ class Collection extends BaseCollection implements QueueableCollection
      */
 
     /**
+     * Push all of the given items onto the collection.
+     *
+     * @template TConcatKey of array-key
+     * @template TConcatValue
+     *
+     * @param  iterable<TConcatKey, TConcatValue>  $source
+     * @return \Illuminate\Support\Collection<TKey|TConcatKey, TModel|TConcatValue>|static<TKey|TConcatKey, TModel|TConcatValue>
+     */
+    public function concat($source)
+    {
+        try {
+            $this->ensureItemsAreModels($source);
+        } catch (UnexpectedValueException) {
+            return $this->toBase()->concat($source);
+        }
+
+        return parent::concat($source);
+    }
+
+    /**
      * Count the number of items in the collection by a field or using a callback.
      *
      * @param  (callable(TModel, TKey): array-key)|string|null  $countBy
@@ -584,6 +641,20 @@ class Collection extends BaseCollection implements QueueableCollection
     }
 
     /**
+     * Cross join with the given lists, returning all possible permutations.
+     *
+     * @template TCrossJoinKey
+     * @template TCrossJoinValue
+     *
+     * @param  \Illuminate\Contracts\Support\Arrayable<TCrossJoinKey, TCrossJoinValue>|iterable<TCrossJoinKey, TCrossJoinValue>  ...$lists
+     * @return \Illuminate\Support\Collection<int, array<int, TModel|TCrossJoinValue>>
+     */
+    public function crossJoin(...$lists)
+    {
+        return $this->toBase()->crossJoin(...$lists);
+    }
+
+    /**
      * Get a flattened array of the items in the collection.
      *
      * @param  int  $depth
@@ -597,7 +668,7 @@ class Collection extends BaseCollection implements QueueableCollection
     /**
      * Flip the items in the collection.
      *
-     * @return \Illuminate\Support\Collection<TModel, TKey>
+     * @return \Illuminate\Support\Collection<array-key, TKey>
      */
     public function flip()
     {
@@ -638,6 +709,51 @@ class Collection extends BaseCollection implements QueueableCollection
     public function pluck($value, $key = null)
     {
         return $this->toBase()->pluck($value, $key);
+    }
+
+    /**
+     * Push an item onto the beginning of the collection.
+     *
+     * @param  TModel  $value
+     * @param  TKey  $key
+     * @return $this
+     *
+     * @throws \UnexpectedValueException
+     */
+    public function prepend($value, $key = null)
+    {
+        $this->ensureItemsAreModels($value);
+
+        return parent::prepend($value, $key);
+    }
+
+    /**
+     * Push one or more items onto the end of the collection.
+     *
+     * @param  TModel ...$values
+     * @return $this
+     */
+    public function push(...$values)
+    {
+        $this->ensureItemsAreModels($values);
+
+        return parent::push(...$values);
+    }
+
+    /**
+     * Transform each item in the collection using a callback.
+     *
+     * @param  callable(TModel, TKey): TModel  $callback
+     * @return $this
+     *
+     * @throws \UnexpectedValueException
+     */
+    public function transform(callable $callback)
+    {
+        parent::transform($callback);
+        $this->ensureItemsAreModels();
+
+        return $this;
     }
 
     /**
@@ -785,5 +901,33 @@ class Collection extends BaseCollection implements QueueableCollection
         }
 
         return $model->newModelQuery()->whereKey($this->modelKeys());
+    }
+
+    /**
+     * Set the item at a given offset.
+     *
+     * @param  TKey|null  $key
+     * @param  TModel  $value
+     * @return void
+     *
+     * @throws \UnexpectedValueException
+     */
+    public function offsetSet($key, $value): void
+    {
+        $this->ensureItemsAreModels($value);
+        parent::offsetSet($key, $value);
+    }
+
+    /**
+     * Ensure that all items are Model instances.
+     *
+     * @param  iterable<array-key, TModel>|TModel|null  $items
+     * @return void
+     *
+     * @throws \UnexpectedValueException
+     */
+    protected function ensureItemsAreModels($items = null): void
+    {
+        BaseCollection::wrap($items ?? $this->items)->ensure(Model::class);
     }
 }
