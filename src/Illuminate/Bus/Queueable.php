@@ -214,7 +214,6 @@ trait Queueable
     /**
      * Prepend a job to the current chain so that it is run after the currently running job.
      *
-     * @param  mixed  $job
      * @return $this
      */
     public function prependToChain($job)
@@ -231,7 +230,6 @@ trait Queueable
     /**
      * Append a job to the end of the current chain.
      *
-     * @param  mixed  $job
      * @return $this
      */
     public function appendToChain($job)
@@ -248,7 +246,6 @@ trait Queueable
     /**
      * Serialize a job for queuing.
      *
-     * @param  mixed  $job
      * @return string
      *
      * @throws \RuntimeException

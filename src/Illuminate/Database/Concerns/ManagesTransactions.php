@@ -79,7 +79,6 @@ trait ManagesTransactions
     /**
      * Handle an exception encountered when running a transacted statement.
      *
-     * @param  \Throwable  $e
      * @param  int  $currentAttempt
      * @param  int  $maxAttempts
      * @return void
@@ -178,7 +177,6 @@ trait ManagesTransactions
     /**
      * Handle an exception from a transaction beginning.
      *
-     * @param  \Throwable  $e
      * @return void
      *
      * @throws \Throwable
@@ -223,7 +221,6 @@ trait ManagesTransactions
     /**
      * Handle an exception encountered when committing a transaction.
      *
-     * @param  \Throwable  $e
      * @param  int  $currentAttempt
      * @param  int  $maxAttempts
      * @return void
@@ -310,7 +307,6 @@ trait ManagesTransactions
     /**
      * Handle an exception from a rollback.
      *
-     * @param  \Throwable  $e
      * @return void
      *
      * @throws \Throwable

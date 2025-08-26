@@ -250,7 +250,6 @@ class ArtisanServiceProvider extends ServiceProvider implements DeferrableProvid
     /**
      * Register the given commands.
      *
-     * @param  array  $commands
      * @return void
      */
     protected function registerCommands(array $commands)

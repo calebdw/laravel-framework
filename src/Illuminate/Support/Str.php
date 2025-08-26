@@ -356,9 +356,6 @@ class Str
     /**
      * Convert the case of a string.
      *
-     * @param  string  $string
-     * @param  int  $mode
-     * @param  string|null  $encoding
      * @return string
      */
     public static function convertCase(string $string, int $mode = MB_CASE_FOLD, ?string $encoding = 'UTF-8')
@@ -369,7 +366,6 @@ class Str
     /**
      * Replace consecutive instances of a given character with a single character in the given string.
      *
-     * @param  string  $string
      * @param  array<string>|string  $characters
      * @return string
      */
@@ -567,7 +563,6 @@ class Str
     /**
      * Determine if a given value is valid JSON.
      *
-     * @param  mixed  $value
      * @return bool
      */
     public static function isJson($value)
@@ -582,8 +577,6 @@ class Str
     /**
      * Determine if a given value is a valid URL.
      *
-     * @param  mixed  $value
-     * @param  array  $protocols
      * @return bool
      */
     public static function isUrl($value, array $protocols = [])
@@ -625,7 +618,6 @@ class Str
     /**
      * Determine if a given value is a valid UUID.
      *
-     * @param  mixed  $value
      * @param  int<0, 8>|'nil'|'max'|null  $version
      * @return bool
      */
@@ -667,7 +659,6 @@ class Str
     /**
      * Determine if a given value is a valid ULID.
      *
-     * @param  mixed  $value
      * @return bool
      */
     public static function isUlid($value)
@@ -766,8 +757,6 @@ class Str
      * Converts GitHub flavored Markdown into HTML.
      *
      * @param  string  $string
-     * @param  array  $options
-     * @param  array  $extensions
      * @return string
      */
     public static function markdown($string, array $options = [], array $extensions = [])
@@ -787,8 +776,6 @@ class Str
      * Converts inline Markdown into HTML.
      *
      * @param  string  $string
-     * @param  array  $options
-     * @param  array  $extensions
      * @return string
      */
     public static function inlineMarkdown($string, array $options = [], array $extensions = [])
@@ -1103,7 +1090,6 @@ class Str
     /**
      * Set the callable that will be used to generate random strings.
      *
-     * @param  callable|null  $factory
      * @return void
      */
     public static function createRandomStringsUsing(?callable $factory = null)
@@ -1114,7 +1100,6 @@ class Str
     /**
      * Set the sequence that will be used to generate random strings.
      *
-     * @param  array  $sequence
      * @param  callable|null  $whenMissing
      * @return void
      */
@@ -1158,8 +1143,6 @@ class Str
     /**
      * Repeat the given string.
      *
-     * @param  string  $string
-     * @param  int  $times
      * @return string
      */
     public static function repeat(string $string, int $times)
@@ -1195,7 +1178,6 @@ class Str
     /**
      * Convert the given value to a string or return the given fallback on failure.
      *
-     * @param  mixed  $value
      * @param  string  $fallback
      * @return string
      */
@@ -1372,7 +1354,6 @@ class Str
     /**
      * Reverse the given string.
      *
-     * @param  string  $value
      * @return string
      */
     public static function reverse(string $value)
@@ -1743,7 +1724,6 @@ class Str
     /**
      * Swap multiple keywords in a string with other keywords.
      *
-     * @param  array  $map
      * @param  string  $subject
      * @return string
      */
@@ -1756,8 +1736,6 @@ class Str
      * Take the first or last {$limit} characters of a string.
      *
      * @param  string  $string
-     * @param  int  $limit
-     * @return string
      */
     public static function take($string, int $limit): string
     {
@@ -1772,7 +1750,6 @@ class Str
      * Convert the given string to Base64 encoding.
      *
      * @param  string  $string
-     * @return string
      */
     public static function toBase64($string): string
     {
@@ -1903,7 +1880,6 @@ class Str
     /**
      * Set the callable that will be used to generate UUIDs.
      *
-     * @param  callable|null  $factory
      * @return void
      */
     public static function createUuidsUsing(?callable $factory = null)
@@ -1914,7 +1890,6 @@ class Str
     /**
      * Set the sequence that will be used to generate UUIDs.
      *
-     * @param  array  $sequence
      * @param  callable|null  $whenMissing
      * @return void
      */
@@ -1948,7 +1923,6 @@ class Str
     /**
      * Always return the same UUID when generating new UUIDs.
      *
-     * @param  \Closure|null  $callback
      * @return \Ramsey\Uuid\UuidInterface
      */
     public static function freezeUuids(?Closure $callback = null)
@@ -2010,7 +1984,6 @@ class Str
     /**
      * Set the callable that will be used to generate ULIDs.
      *
-     * @param  callable|null  $factory
      * @return void
      */
     public static function createUlidsUsing(?callable $factory = null)
@@ -2021,7 +1994,6 @@ class Str
     /**
      * Set the sequence that will be used to generate ULIDs.
      *
-     * @param  array  $sequence
      * @param  callable|null  $whenMissing
      * @return void
      */
@@ -2055,7 +2027,6 @@ class Str
     /**
      * Always return the same ULID when generating new ULIDs.
      *
-     * @param  Closure|null  $callback
      * @return Ulid
      */
     public static function freezeUlids(?Closure $callback = null)
